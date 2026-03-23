@@ -2,28 +2,30 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <!-- Auto-Refresh alle 30 Minuten -->
+  <!-- Seite alle 30 Minuten automatisch neu laden -->
   <meta http-equiv="refresh" content="1800">
   <title>Kalender</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; }
+    iframe { display: block; width: 100vw; height: 100vh; border: none; }
+  </style>
 </head>
 <body>
 
-<iframe id="mein-kalender"
-  style="border:solid 1px #777; width:100%; height:96vh;"
-  frameborder="0" scrolling="no">
-</iframe>
+<iframe id="mein-kalender" frameborder="0" scrolling="no"></iframe>
 
 <script>
   function getMondayOfWeek(d) {
-    var day = d.getDay();
+    var day  = d.getDay();
     var diff = (day === 0) ? -6 : 1 - day;
     d.setDate(d.getDate() + diff);
     return d;
   }
   function toDate(d) {
     var mo = (d.getMonth()+1 < 10) ? "0"+(d.getMonth()+1) : ""+(d.getMonth()+1);
-    var da = (d.getDate() < 10) ? "0"+d.getDate() : ""+d.getDate();
-    return ""+d.getFullYear()+mo+da;
+    var da = (d.getDate() < 10)    ? "0"+d.getDate()       : ""+ d.getDate();
+    return "" + d.getFullYear() + mo + da;
   }
 
   var start = getMondayOfWeek(new Date());
@@ -31,9 +33,16 @@
   end.setDate(end.getDate() + 27);
   var dates = toDate(start) + "/" + toDate(end);
 
-  var base = "https://calendar.google.com/calendar/embed?height=1080&wkst=2&ctz=Europe%2FVienna&showNav=0&showPrint=0&showTabs=0&showCalendars=0&mode=MONTH&src=ZmFiaWFuLmdvZWdlbGVAZ21haWwuY29t&src=ZGUuaXRhbGlhbiNob2xpZGF5QGdyb3VwLnYuY2FsZW5kYXIuZ29vZ2xlLmNvbQ&src=ZGUuYXVzdHJpYW4jaG9saWRheUBncm91cC52LmNhbGVuZGFyLmdvb2dsZS5jb20&color=%233f51b5&color=%237986cb&color=%230b8043";
+  var base = "https://calendar.google.com/calendar/embed"
+    + "?height=1080&wkst=2&ctz=Europe%2FVienna"
+    + "&showNav=0&showPrint=0&showTabs=0&showCalendars=0"
+    + "&mode=AGENDA"
+    + "&src=ZmFiaWFuLmdvZWdlbGVAZ21haWwuY29t&color=%233f51b5"
+    + "&src=ZGUuaXRhbGlhbiNob2xpZGF5QGdyb3VwLnYuY2FsZW5kYXIuZ29vZ2xlLmNvbQ&color=%237986cb"
+    + "&src=ZGUuYXVzdHJpYW4jaG9saWRheUBncm91cC52LmNhbGVuZGFyLmdvb2dsZS5jb20&color=%230b8043";
 
-  base = base.replace(/dates=[^&]*/, "dates=" + dates);
+  base = base + "&dates=" + dates;
+
   document.getElementById("mein-kalender").src = base;
 </script>
 
