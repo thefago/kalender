@@ -2,49 +2,523 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <!-- Seite alle 30 Minuten automatisch neu laden -->
   <meta http-equiv="refresh" content="1800">
   <title>Kalender</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #000; overflow: hidden; }
-    iframe { display: block; width: 100vw; height: 100vh; border: none; }
+    :root {
+      --bg:          #13100c;
+      --bg2:         #1e180f;
+      --cell:        #1a1410;
+      --cell-week:   #211a10;
+      --cell-today:  #2e1f0a;
+      --cell-wend:   #171310;
+      --border:      #332a1e;
+      --border-acc:  #8d6e3f;
+      --text:        #e2cda8;
+      --text-dim:    #7a6040;
+      --text-dimmer: #4a3a28;
+      --amber:       #c9922a;
+      --amber-lt:    #e8b86d;
+      --terracotta:  #9b4f2a;
+      --sage:        #5a7a4a;
+      --stone:       #7a6a5a;
+    }
+
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Source+Code+Pro:wght@400;600&display=swap');
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── HEADER ── */
+    #header {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border-acc);
+      padding: 10px 24px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    #header-left { display:flex; align-items:baseline; gap:20px; }
+    #month-title {
+      font-size: 30px;
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+    #kw-range {
+      font-size: 13px;
+      color: var(--text-dim);
+      font-family: 'Source Code Pro', monospace;
+      letter-spacing: 0.02em;
+    }
+    #clock {
+      font-family: 'Source Code Pro', monospace;
+      font-size: 38px;
+      color: var(--text);
+      letter-spacing: 0.06em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Legend */
+    #legend {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .leg-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    .leg-dot {
+      width: 10px; height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── WEEKDAY HEADER ── */
+    #weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      background: var(--bg2);
+    }
+    .wd {
+      text-align: center;
+      padding: 5px 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dimmer);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      border-right: 1px solid var(--border);
+      font-family: 'Source Code Pro', monospace;
+    }
+    .wd:last-child { border-right: none; }
+    .wd.we { color: var(--terracotta); opacity: 0.8; }
+
+    /* ── GRID ── */
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      flex: 1;
+      gap: 1px;
+      background: var(--border);
+      min-height: 0;
+    }
+
+    .cell {
+      background: var(--cell);
+      padding: 6px 8px 5px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .cell.cur-week  { background: var(--cell-week); }
+    .cell.is-today  { background: var(--cell-today); }
+    .cell.weekend   { background: var(--cell-wend); }
+    .cell.is-today.weekend { background: var(--cell-today); }
+
+    /* Woche-Indikator – linker Balken für aktuelle Woche */
+    .cell.cur-week::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--amber);
+      opacity: 0.5;
+    }
+    .cell.cur-week:first-child::before,
+    .cell.is-today::before {
+      opacity: 0.9;
+    }
+
+    /* Datum-Zahl */
+    .cell-date {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+    .cell.is-today .cell-date {
+      color: var(--bg);
+      background: var(--amber);
+      width: 28px; height: 28px;
+      line-height: 28px;
+      text-align: center;
+      border-radius: 50%;
+      font-size: 15px;
+      margin-bottom: 5px;
+    }
+    .cell.cur-week:not(.is-today) .cell-date {
+      color: var(--amber-lt);
+    }
+
+    /* Events */
+    .events { flex: 1; overflow: hidden; min-height: 0; }
+
+    .ev {
+      font-size: 11.5px;
+      padding: 2px 5px 2px 7px;
+      border-radius: 3px;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.4;
+      position: relative;
+    }
+    .ev::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      border-radius: 3px 0 0 3px;
+    }
+    .ev0 { background: rgba(80,100,200,0.18); color: #b0bcf0; }
+    .ev0::before { background: #5060c8; }
+    .ev1 { background: rgba(160,130,80,0.20); color: #d4b87a; }
+    .ev1::before { background: #c8a040; }
+    .ev2 { background: rgba(60,130,80,0.20); color: #8acc98; }
+    .ev2::before { background: #3c8a50; }
+
+    .ev-time {
+      font-family: 'Source Code Pro', monospace;
+      font-size: 9px;
+      opacity: 0.7;
+      margin-right: 3px;
+    }
+
+    .more {
+      font-size: 10px;
+      color: var(--text-dimmer);
+      padding-left: 7px;
+      margin-top: 1px;
+    }
+
+    /* Monatstrennlinie */
+    .cell.month-start::after {
+      content: attr(data-month);
+      position: absolute;
+      top: 4px; right: 6px;
+      font-size: 9px;
+      color: var(--text-dimmer);
+      font-family: 'Source Code Pro', monospace;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* ── STATUS ── */
+    #status {
+      position: fixed; inset: 0;
+      background: rgba(19,16,12,0.93);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 16px;
+      z-index: 99;
+    }
+    #status.hidden { display: none; }
+    #status-text { font-size: 22px; color: var(--amber); letter-spacing: 0.05em; }
+    #status-sub  { font-size: 13px; color: var(--text-dim); font-family: 'Source Code Pro', monospace; }
+
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--amber);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Fade-in Zellen */
+    .cell { animation: fadeIn 0.4s ease both; }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
   </style>
 </head>
 <body>
 
-<iframe id="mein-kalender" frameborder="0" scrolling="no"></iframe>
+<div id="status">
+  <div class="spinner"></div>
+  <div id="status-text">Kalender wird geladen …</div>
+  <div id="status-sub">Verbinde mit Google Calendar</div>
+</div>
+
+<div id="header">
+  <div id="header-left">
+    <span id="month-title">–</span>
+    <span id="kw-range">–</span>
+  </div>
+  <div id="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#5060c8"></div>Persönlich</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#c8a040"></div>Feiertage IT</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#3c8a50"></div>Feiertage AT</div>
+  </div>
+  <div id="clock">–</div>
+</div>
+
+<div id="weekdays">
+  <div class="wd">Mo</div>
+  <div class="wd">Di</div>
+  <div class="wd">Mi</div>
+  <div class="wd">Do</div>
+  <div class="wd">Fr</div>
+  <div class="wd we">Sa</div>
+  <div class="wd we">So</div>
+</div>
+
+<div id="grid"></div>
 
 <script>
-  function getMondayOfWeek(d) {
-    var day  = d.getDay();
-    var diff = (day === 0) ? -6 : 1 - day;
-    d.setDate(d.getDate() + diff);
-    return d;
+// ── Kalender-Konfiguration ─────────────────────────────────────
+var CALS = [
+  { id: 'fabian.goegele@gmail.com',                              cls: 'ev0' },
+  { id: 'de.italian#holiday@group.v.calendar.google.com',        cls: 'ev1' },
+  { id: 'de.austrian#holiday@group.v.calendar.google.com',       cls: 'ev2' }
+];
+var PROXY = 'https://corsproxy.io/?url=';
+var DE_MO = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+var DE_MO_FULL = ['Januar','Februar','März','April','Mai','Juni',
+                  'Juli','August','September','Oktober','November','Dezember'];
+
+// ── Datum-Helfer ───────────────────────────────────────────────
+function monday(d) {
+  var r = new Date(d); r.setHours(0,0,0,0);
+  var day = r.getDay();
+  r.setDate(r.getDate() + ((day===0) ? -6 : 1-day));
+  return r;
+}
+function addDays(d, n) {
+  var r = new Date(d); r.setDate(r.getDate()+n); return r;
+}
+function sameDay(a,b) {
+  return a.getFullYear()===b.getFullYear() &&
+         a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+}
+function getKW(d) {
+  var tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  var dow = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dow);
+  var y = new Date(Date.UTC(tmp.getUTCFullYear(),0,1));
+  return Math.ceil((((tmp - y) / 86400000) + 1) / 7);
+}
+
+// ── iCal Parser ────────────────────────────────────────────────
+function icalDate(val) {
+  val = val.replace('Z','');
+  var Y=+val.substr(0,4), M=+val.substr(4,2)-1, D=+val.substr(6,2);
+  if (val.length===8) return new Date(Y,M,D,0,0,0);
+  return new Date(Y,M,D,+val.substr(9,2),+val.substr(11,2),0);
+}
+
+function parseIcal(txt, calIdx, rS, rE) {
+  txt = txt.replace(/\r\n[ \t]/g,'').replace(/\n[ \t]/g,'');
+  var lines = txt.split(/\r\n|\n|\r/);
+  var events=[], cur=null;
+  for (var i=0; i<lines.length; i++) {
+    var l = lines[i];
+    if (l==='BEGIN:VEVENT') { cur={calIdx:calIdx}; continue; }
+    if (l==='END:VEVENT') {
+      if (cur && cur.start) {
+        var ex = expand(cur, rS, rE);
+        for (var j=0; j<ex.length; j++) events.push(ex[j]);
+      }
+      cur=null; continue;
+    }
+    if (!cur) continue;
+    var sep=l.indexOf(':'); if (sep<0) continue;
+    var rk=l.substring(0,sep), v=l.substring(sep+1).trim();
+    var k=rk.split(';')[0].toUpperCase();
+    if (k==='SUMMARY')  cur.title = v.replace(/\\,/g,',').replace(/\\n/g,' ').replace(/\\;/g,';');
+    if (k==='DTSTART') { cur.allDay=(rk.indexOf('VALUE=DATE')>=0||v.length===8); cur.start=icalDate(v); }
+    if (k==='DTEND')    cur.end=icalDate(v);
+    if (k==='RRULE')    cur.rrule=v;
   }
-  function toDate(d) {
-    var mo = (d.getMonth()+1 < 10) ? "0"+(d.getMonth()+1) : ""+(d.getMonth()+1);
-    var da = (d.getDate() < 10)    ? "0"+d.getDate()       : ""+ d.getDate();
-    return "" + d.getFullYear() + mo + da;
+  return events;
+}
+
+function expand(ev, rS, rE) {
+  if (!ev.rrule) {
+    var s=ev.start, e=ev.end||addDays(s,1);
+    return (s<rE && e>rS) ? [ev] : [];
+  }
+  var rules={};
+  ev.rrule.split(';').forEach(function(p){var kv=p.split('=');rules[kv[0]]=kv[1];});
+  var freq=rules.FREQ, intv=parseInt(rules.INTERVAL)||1;
+  var until=rules.UNTIL?icalDate(rules.UNTIL):null;
+  var maxCount=rules.COUNT?parseInt(rules.COUNT):300;
+  var out=[], cur=new Date(ev.start), n=0;
+  while(n<maxCount) {
+    if (until && cur>until) break;
+    if (cur>rE) break;
+    if (cur>=rS && cur<rE) {
+      out.push({title:ev.title,start:new Date(cur),
+                end:ev.end?new Date(ev.end):addDays(cur,1),
+                allDay:ev.allDay,calIdx:ev.calIdx});
+    }
+    if (freq==='DAILY')   cur.setDate(cur.getDate()+intv);
+    else if(freq==='WEEKLY')  cur.setDate(cur.getDate()+7*intv);
+    else if(freq==='MONTHLY') cur.setMonth(cur.getMonth()+intv);
+    else if(freq==='YEARLY')  cur.setFullYear(cur.getFullYear()+intv);
+    else break;
+    n++;
+  }
+  return out;
+}
+
+// ── Fetch ──────────────────────────────────────────────────────
+function fetchCal(cal, idx, rS, rE) {
+  var url = PROXY + encodeURIComponent(
+    'https://calendar.google.com/calendar/ical/' +
+    encodeURIComponent(cal.id) + '/public/basic.ics');
+  return fetch(url)
+    .then(function(r){ return r.text(); })
+    .then(function(t){ return parseIcal(t, idx, rS, rE); })
+    .catch(function(){ return []; });
+}
+
+// ── Uhr ────────────────────────────────────────────────────────
+function tick() {
+  var n=new Date();
+  var h=n.getHours()<10?'0'+n.getHours():''+n.getHours();
+  var m=n.getMinutes()<10?'0'+n.getMinutes():''+n.getMinutes();
+  document.getElementById('clock').textContent=h+':'+m;
+}
+
+// ── Grid rendern ───────────────────────────────────────────────
+function render(allEvs) {
+  var today = new Date(); today.setHours(0,0,0,0);
+  var mon   = monday(new Date());
+  var end28 = addDays(mon, 28);
+
+  // Header
+  var mS=DE_MO_FULL[mon.getMonth()], mE=DE_MO_FULL[addDays(mon,27).getMonth()];
+  var yr = mon.getFullYear();
+  document.getElementById('month-title').textContent =
+    mS===mE ? mS+' '+yr : mS+' / '+mE+' '+yr;
+
+  var kw1=getKW(mon), kw4=getKW(addDays(mon,21));
+  document.getElementById('kw-range').textContent =
+    'KW '+kw1+(kw4!==kw1?' – KW '+kw4:'')+
+    '  ·  '+mon.getDate()+'. '+DE_MO[mon.getMonth()]+
+    ' – '+addDays(mon,27).getDate()+'. '+DE_MO[addDays(mon,27).getMonth()];
+
+  // Events nach Tag
+  var byDay={};
+  allEvs.forEach(function(ev){
+    var s=new Date(ev.start); s.setHours(0,0,0,0);
+    var e=new Date(ev.end||addDays(s,1)); e.setHours(0,0,0,0);
+    for(var d=new Date(s); d<e; d=addDays(d,1)){
+      var k=d.toDateString();
+      if(!byDay[k]) byDay[k]=[];
+      byDay[k].push(ev);
+    }
+  });
+
+  var grid=document.getElementById('grid');
+  grid.innerHTML='';
+
+  for(var row=0; row<4; row++){
+    for(var col=0; col<7; col++){
+      var date = addDays(mon, row*7+col);
+      var isToday   = sameDay(date,today);
+      var isCurWeek = (row===0);
+      var isWe      = (col>=5);
+      var isNewMo   = (date.getDate()===1);
+
+      var cell=document.createElement('div');
+      cell.className='cell'
+        +(isCurWeek?' cur-week':'')
+        +(isToday?' is-today':'')
+        +(isWe?' weekend':'');
+      cell.style.animationDelay=(row*7+col)*12+'ms';
+
+      if(isNewMo){
+        cell.classList.add('month-start');
+        cell.setAttribute('data-month', DE_MO[date.getMonth()]);
+      }
+
+      // Datum
+      var dn=document.createElement('div');
+      dn.className='cell-date';
+      dn.textContent=date.getDate();
+      cell.appendChild(dn);
+
+      // Events
+      var wrap=document.createElement('div');
+      wrap.className='events';
+      var evs=(byDay[date.toDateString()]||[]).slice();
+      evs.sort(function(a,b){
+        if(a.allDay&&!b.allDay)return -1;
+        if(!a.allDay&&b.allDay)return 1;
+        return a.start-b.start;
+      });
+
+      var maxShow=4, shown=0;
+      evs.forEach(function(ev){
+        if(shown>=maxShow)return;
+        var pill=document.createElement('div');
+        pill.className='ev '+CALS[ev.calIdx].cls;
+        var label='';
+        if(!ev.allDay){
+          var h=ev.start.getHours()<10?'0'+ev.start.getHours():''+ev.start.getHours();
+          var m=ev.start.getMinutes()<10?'0'+ev.start.getMinutes():''+ev.start.getMinutes();
+          label='<span class="ev-time">'+h+':'+m+'</span>';
+        }
+        pill.innerHTML=label+(ev.title||'–');
+        wrap.appendChild(pill);
+        shown++;
+      });
+      if(evs.length>maxShow){
+        var more=document.createElement('div');
+        more.className='more';
+        more.textContent='+'+(evs.length-maxShow)+' weitere';
+        wrap.appendChild(more);
+      }
+      cell.appendChild(wrap);
+      grid.appendChild(cell);
+    }
   }
 
-  var start = getMondayOfWeek(new Date());
-  var end   = new Date(start);
-  end.setDate(end.getDate() + 27);
-  var dates = toDate(start) + "/" + toDate(end);
+  document.getElementById('status').className='hidden';
+}
 
-  var base = "https://calendar.google.com/calendar/embed"
-    + "?height=1080&wkst=2&ctz=Europe%2FVienna"
-    + "&showNav=0&showPrint=0&showTabs=0&showCalendars=0"
-    + "&mode=AGENDA"
-    + "&src=ZmFiaWFuLmdvZWdlbGVAZ21haWwuY29t&color=%233f51b5"
-    + "&src=ZGUuaXRhbGlhbiNob2xpZGF5QGdyb3VwLnYuY2FsZW5kYXIuZ29vZ2xlLmNvbQ&color=%237986cb"
-    + "&src=ZGUuYXVzdHJpYW4jaG9saWRheUBncm91cC52LmNhbGVuZGFyLmdvb2dsZS5jb20&color=%230b8043";
+// ── Init ───────────────────────────────────────────────────────
+tick();
+setInterval(tick,15000);
 
-  base = base + "&dates=" + dates;
+var rS=monday(new Date()), rE=addDays(rS,28);
+var statusSub=document.getElementById('status-sub');
 
-  document.getElementById("mein-kalender").src = base;
+Promise.all(CALS.map(function(cal,i){
+  statusSub.textContent='Lade Kalender '+(i+1)+' von '+CALS.length+' …';
+  return fetchCal(cal,i,rS,rE);
+})).then(function(results){
+  var all=[];
+  results.forEach(function(r){ all=all.concat(r); });
+  render(all);
+}).catch(function(){
+  document.getElementById('status-text').textContent='Fehler beim Laden';
+  statusSub.textContent='Bitte Seite neu laden (F5)';
+});
 </script>
-
 </body>
 </html>
