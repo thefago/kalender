@@ -199,6 +199,22 @@
     @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
   </style>
 </head>
+
+<!-- ============================================================
+     KONFIGURATION – NUR DIESEN BLOCK ANPASSEN
+     Ersetzen Sie die Kalender-IDs (id:) durch Ihre eigenen.
+     Die Farben (color:) entsprechen den Farben in Google Calendar.
+     ============================================================ -->
+<script>
+/* ── KALENDER-KONFIGURATION (anpassen!) ─────────────────────── */
+var CALS = [
+  { id:'fabian.goegele@gmail.com',                             color:'#3f51b5', label:'Persönlich'  },
+  { id:'de.italian#holiday@group.v.calendar.google.com', color:'#7986cb', label:'Feiertage IT' },
+  { id:'de.austrian#holiday@group.v.calendar.google.com',color:'#0b8043', label:'Feiertage AT' }
+];
+/* ── ENDE KONFIGURATION ─────────────────────────────────────── */
+</script>
+
 <body>
 
 <!-- Ladescreen -->
@@ -249,11 +265,7 @@
 <div id="grid"></div>
 
 <script>
-var CALS = [
-  { id:'fabian.goegele@gmail.com',                       color:'#3f51b5', label:'Persönlich'  },
-  { id:'de.italian#holiday@group.v.calendar.google.com', color:'#7986cb', label:'Feiertage IT' },
-  { id:'de.austrian#holiday@group.v.calendar.google.com',color:'#0b8043', label:'Feiertage AT' }
-];
+/* CALS wird oben im Konfig-Block definiert */
 var GCAL_COLORS = {
   'tomato':'#d50000','flamingo':'#e67c73','tangerine':'#f4511e',
   'banana':'#f6bf26','sage':'#33b679','basil':'#0b8043',
